@@ -1,0 +1,41 @@
+section B
+
+B2 
+i)a.mean(axis=0)
+ii)array([30, 40, 50, 60])
+
+C3)
+from airflow.sdk import dag, task
+
+
+@dag(dag_id="stock_check", schedule=None)
+def stock_check():
+
+    @task
+    def check_stock():
+        return {"item": "rice", "qty": 12}
+
+    @task.branch
+    def decide(stock):
+        if stock["qty"] < 20:
+            return "place_order"
+        return "skip_order"
+
+    @task.bash
+    def place_order():
+        return "echo 'Stock low - placing order'"
+
+    @task.bash
+    def skip_order():
+        return "echo 'Stock enough - skipping order'"
+
+    @task(trigger_rule="none_failed_min_one_success")
+    def notify():
+        print("stock check done")
+
+    decide(check_stock()) >> [place_order(), skip_order()] >> notify()
+
+
+stock_check()
+
+
